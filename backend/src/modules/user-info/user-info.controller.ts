@@ -42,12 +42,6 @@ export class UserInfoController {
     return this.userInfoService.findAll(query);
   }
 
-  @Get(':userId')
-  @ApiOperation({ summary: 'Get User Info detail by userId' })
-  async findById(@Param('userId') userId: string) {
-    return this.userInfoService.findById(userId);
-  }
-
   @Get('account-number/:accountNumber')
   @ApiOperation({ summary: 'Get User Info by accountNumber' })
   async findByAccountNumber(
@@ -62,6 +56,12 @@ export class UserInfoController {
     @Param('registrationNumber') registrationNumber: string,
   ) {
     return this.userInfoService.findByRegistrationNumber(registrationNumber);
+  }
+
+  @Get(':userId')
+  @ApiOperation({ summary: 'Get User Info detail by userId' })
+  async findById(@Param('userId') userId: string) {
+    return this.userInfoService.findById(userId);
   }
 
   @Post()

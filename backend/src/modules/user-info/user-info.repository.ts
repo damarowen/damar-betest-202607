@@ -31,13 +31,17 @@ export class UserInfoRepository extends BaseRepository<UserInfoDocument> {
     emailAddress?: string,
     registrationNumber?: string,
   ): Promise<boolean> {
-    const filter: FilterQuery<UserInfoDocument> = {};
-    if (userId) filter.userId = userId;
-    if (accountNumber) filter.accountNumber = accountNumber;
-    if (emailAddress) filter.emailAddress = emailAddress;
-    if (registrationNumber) filter.registrationNumber = registrationNumber;
+    const orConditions: any[] = [];
+    if (userId) orConditions.push({ userId });
+    if (accountNumber) orConditions.push({ accountNumber });
+    if (emailAddress) orConditions.push({ emailAddress });
+    if (registrationNumber) orConditions.push({ registrationNumber });
 
-    const count = await this.userInfoModel.countDocuments(filter).exec();
+    if (orConditions.length === 0) return false;
+
+    const count = await this.userInfoModel
+      .countDocuments({ $or: orConditions })
+      .exec();
     return count > 0;
   }
 }

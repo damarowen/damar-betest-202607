@@ -12,7 +12,7 @@ export class AccountLogin {
   @Prop({ required: true, unique: true })
   userName: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, select: false })
   password: string;
 
   @Prop({ required: true, default: Date.now })

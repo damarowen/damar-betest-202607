@@ -126,23 +126,40 @@ export class UserInfoService {
     userId: string,
     dto: UpdateUserInfoDto,
   ): Promise<UserInfoDocument> {
+    const existing = await this.userInfoRepository.findOne({ userId });
+    if (!existing) {
+      throw new NotFoundException('UserInfo', userId);
+    }
+
     if (dto.accountNumber || dto.emailAddress || dto.registrationNumber) {
-      const exists = await this.userInfoRepository.existsByUniqueFields(
-        undefined,
-        dto.accountNumber,
-        dto.emailAddress,
-        dto.registrationNumber,
-      );
-      if (exists) {
-        throw new ConflictException('Duplicate unique field value');
+      const orConditions: any[] = [];
+      if (dto.accountNumber && dto.accountNumber !== existing.accountNumber) {
+        orConditions.push({ accountNumber: dto.accountNumber });
+      }
+      if (dto.emailAddress && dto.emailAddress !== existing.emailAddress) {
+        orConditions.push({ emailAddress: dto.emailAddress });
+      }
+      if (
+        dto.registrationNumber &&
+        dto.registrationNumber !== existing.registrationNumber
+      ) {
+        orConditions.push({ registrationNumber: dto.registrationNumber });
+      }
+
+      if (orConditions.length > 0) {
+        const conflict = await this.userInfoRepository.existsByUniqueFields(
+          undefined,
+          orConditions[0]?.accountNumber,
+          orConditions[0]?.emailAddress,
+          orConditions[0]?.registrationNumber,
+        );
+        if (conflict) {
+          throw new ConflictException('Duplicate unique field value');
+        }
       }
     }
 
     const updated = await this.userInfoRepository.update({ userId }, dto);
-    if (!updated) {
-      throw new NotFoundException('UserInfo', userId);
-    }
-
     await this.invalidateCache(userId);
     return updated;
   }

@@ -4,6 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { AccountLogin } from '../account-login/schemas/account-login.schema';
+import { UserInfo, UserInfoSchema } from '../user-info/schemas/user-info.schema';
 
 export interface AuthPayload {
   accountId: string;
@@ -21,6 +22,8 @@ export class AuthService {
   constructor(
     @InjectModel(AccountLogin.name)
     private readonly accountLoginModel: Model<AccountLogin>,
+    @InjectModel(UserInfo.name)
+    private readonly userInfoModel: Model<UserInfo>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -30,7 +33,7 @@ export class AuthService {
   ): Promise<AuthPayload> {
     const account = await this.accountLoginModel
       .findOne({ userName })
-      .populate('userInfo')
+      .select('+password')
       .exec();
 
     if (!account) {
@@ -47,7 +50,10 @@ export class AuthService {
       { lastLoginDateTime: new Date() },
     );
 
-    const userInfo = account.userInfo as any;
+    const userInfo = await this.userInfoModel
+      .findOne({ userId: account.userId })
+      .lean()
+      .exec();
 
     return {
       accountId: account.accountId,

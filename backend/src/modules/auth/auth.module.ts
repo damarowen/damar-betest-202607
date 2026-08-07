@@ -11,6 +11,10 @@ import {
   AccountLogin,
   AccountLoginSchema,
 } from '../account-login/schemas/account-login.schema';
+import {
+  UserInfo,
+  UserInfoSchema,
+} from '../user-info/schemas/user-info.schema';
 
 @Module({
   imports: [
@@ -23,6 +27,7 @@ import {
     }),
     MongooseModule.forFeature([
       { name: AccountLogin.name, schema: AccountLoginSchema },
+      { name: UserInfo.name, schema: UserInfoSchema },
     ]),
   ],
   providers: [AuthService, JwtStrategy],
