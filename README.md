@@ -31,47 +31,28 @@ See [backend README](./backend/README.md)
 
 See [frontend README](./frontend/README.md)
 
-## Running Locally with Docker
+## Panduan Menjalankan
+
+Lihat file lengkapnya di [RUN.md](./RUN.md). Ringkasnya:
 
 ```bash
-# Start all services
+# Cara 1: Docker Compose (semua service otomatis berjalan)
+cd /Users/macbookair/Desktop/damar-backend-betest
 docker-compose up --build
 
-# Backend API: http://localhost:3000/api
-# Swagger Docs: http://localhost:3000/api/docs
-# Frontend: http://localhost:8080
-# MongoDB: localhost:27017
-# Redis: localhost:6379
+# Cara 2: Development manual (perlu MongoDB dan Redis berjalan lokal)
+# Terminal 1: Backend
+cd backend && cp .env.example .env && npm install && npm run start:dev
+
+# Terminal 2: Frontend
+cd frontend && cp .env.example .env && npm install && npm run dev
 ```
 
-## Running Locally (Development)
-
-1. Start MongoDB and Redis
-2. Copy `backend/.env.example` to `backend/.env`
-3. Run backend:
-   ```bash
-   cd backend
-   npm install
-   npm run start:dev
-   ```
-4. Run frontend:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
-## Testing
-
-```bash
-# Backend tests
-cd backend
-npm test
-
-# Frontend tests
-cd frontend
-npm test
-```
+| Service | URL (Docker Compose) |
+|---------|----------------------|
+| Frontend | http://localhost:8080 |
+| Backend API | http://localhost:3000/api |
+| Swagger UI | http://localhost:3000/api/docs |
 
 ## Tech Stack
 
