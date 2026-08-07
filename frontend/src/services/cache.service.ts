@@ -25,7 +25,35 @@ export class CacheService {
       };
       localStorage.setItem(this.getKey(key), JSON.stringify(item));
     } catch {
-      // localStorage might be full
+      this.evictOldest();
+      try {
+        const item: CacheItem<T> = {
+          data,
+          expiresAt: Date.now() + ttl,
+        };
+        localStorage.setItem(this.getKey(key), JSON.stringify(item));
+      } catch {
+        // give up if still full
+      }
+    }
+  }
+
+  private evictOldest(): void {
+    const entries: { key: string; expiresAt: number }[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const fullKey = localStorage.key(i);
+      if (!fullKey || !fullKey.startsWith(this.prefix)) continue;
+      try {
+        const item = JSON.parse(localStorage.getItem(fullKey) || '{}');
+        entries.push({ key: fullKey, expiresAt: item.expiresAt || 0 });
+      } catch {
+        entries.push({ key: fullKey, expiresAt: 0 });
+      }
+    }
+    entries.sort((a, b) => a.expiresAt - b.expiresAt);
+    const toRemove = Math.ceil(entries.length / 3);
+    for (let i = 0; i < toRemove && i < entries.length; i++) {
+      localStorage.removeItem(entries[i].key);
     }
   }
 
@@ -52,6 +80,29 @@ export class CacheService {
     } catch {
       // ignore
     }
+  }
+
+  delPattern(pattern: string): void {
+    try {
+      const fullPattern = this.getKey(pattern);
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && this.matchPattern(key, fullPattern)) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+    } catch {
+      // ignore
+    }
+  }
+
+  private matchPattern(key: string, pattern: string): boolean {
+    const regex = new RegExp(
+      '^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$',
+    );
+    return regex.test(key);
   }
 
   clear(): void {

@@ -79,7 +79,8 @@ describe('userInfo saga', () => {
   it('should use cached users when offline', () => {
     Object.defineProperty(navigator, 'onLine', { value: false, writable: true });
     const cached = { data: [mockUser], total: 1 };
-    new CacheService().set('users:list', cached);
+    const cacheKey = `users:list:p1:l10:fullName:all:s`;
+    new CacheService().set(cacheKey, cached);
 
     const gen = fetchUsersSaga(fetchUsersStart({}));
 

@@ -107,6 +107,109 @@ Frontend akan berjalan di: http://localhost:5173
 
 ---
 
+## Seed Data (Pertama Kali Setup)
+
+Setelah database pertama kali dibuat, jalankan seed untuk membuat user awal yang bisa dipakai login:
+
+```bash
+cd /Users/macbookair/Desktop/damar-backend-betest/backend
+npm run seed
+```
+
+Seed aman dijalankan berulang — jika data sudah ada, akan skip otomatis.
+
+### Default Login Credentials
+
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | `admin` | `admin123` |
+| User | `user` | `user123` |
+
+### Seed di Docker
+
+Jalankan seed di dalam container:
+
+```bash
+docker exec ms-damar-backend-betest npx ts-node src/seed.ts
+```
+
+---
+
+## Cara 3: One-Command Local Runner (Tanpa Docker)
+
+Script `run-local.sh` otomatis menjalankan semua: cek prerequisites, start MongoDB & Redis lokal, install dependencies, seed data, dan start backend + frontend.
+
+```bash
+cd /Users/macbookair/Desktop/damar-backend-betest
+./run-local.sh
+```
+
+Tekan `Ctrl+C` untuk stop backend dan frontend. MongoDB & Redis tetap berjalan.
+
+---
+
+## Deploy ke VPS
+
+### Prasyarat VPS
+
+- Node.js 20+
+- MongoDB
+- Redis
+- npm
+
+### Langkah Deploy
+
+```bash
+# 1. Clone repository
+git clone https://github.com/damarowen/damar-betest-202607.git
+cd damar-betest-202607
+
+# 2. Jalankan script (auto: install + seed + start)
+./run-local.sh
+```
+
+Atau manual per service:
+
+```bash
+# Backend
+cd backend
+cp .env.example .env
+# Edit .env: ubah JWT_SECRET dan CORS_ORIGIN sesuai domain VPS
+npm install
+npm run build
+npm run seed          # sekali saja, untuk buat user awal
+npm run start:prod    # atau pakai PM2: pm2 start dist/main.js
+
+# Frontend
+cd ../frontend
+cp .env.example .env
+# Edit .env: VITE_API_URL=http://domain-vps-anda:3000/api
+npm install
+npm run build
+# Serve dist/ via nginx
+```
+
+### Konfigurasi .env untuk Production
+
+Backend `.env`:
+```env
+PORT=3000
+NODE_ENV=production
+MONGODB_URI=mongodb://localhost:27017/db_damar_backend_betest
+JWT_SECRET=ganti_dengan_secret_yang_kuat_dan_acak
+JWT_EXPIRES_IN=1d
+REDIS_HOST=localhost
+REDIS_PORT=6379
+CORS_ORIGIN=http://domain-vps-anda
+```
+
+Frontend `.env`:
+```env
+VITE_API_URL=http://domain-vps-anda:3000/api
+```
+
+---
+
 ## Menjalankan Test
 
 ### Backend Test

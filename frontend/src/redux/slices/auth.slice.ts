@@ -3,12 +3,25 @@ import api from '../../api/axios';
 
 interface AuthState {
   token: string | null;
+  role: string | null;
   loading: boolean;
   error: string | null;
 }
 
+function decodeRoleFromToken(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.role || null;
+  } catch {
+    return null;
+  }
+}
+
+const storedToken = localStorage.getItem('token');
+
 const initialState: AuthState = {
-  token: localStorage.getItem('token'),
+  token: storedToken,
+  role: storedToken ? decodeRoleFromToken(storedToken) : null,
   loading: false,
   error: null,
 };
@@ -37,6 +50,7 @@ const authSlice = createSlice({
   reducers: {
     logout: (state) => {
       state.token = null;
+      state.role = null;
       localStorage.removeItem('token');
     },
     clearError: (state) => {
@@ -54,6 +68,7 @@ const authSlice = createSlice({
         (state, action: PayloadAction<string>) => {
           state.loading = false;
           state.token = action.payload;
+          state.role = decodeRoleFromToken(action.payload);
         },
       )
       .addCase(loginThunk.rejected, (state, action) => {

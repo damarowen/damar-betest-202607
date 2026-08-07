@@ -8,6 +8,8 @@ import { UserInfoModule } from './modules/user-info/user-info.module';
 import { AccountLoginModule } from './modules/account-login/account-login.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { DatabaseConfig } from './config/database.config';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 
 @Module({
   imports: [
@@ -30,6 +32,14 @@ import { DatabaseConfig } from './config/database.config';
     AccountLoginModule,
   ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

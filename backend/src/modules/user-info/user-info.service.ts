@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UserInfoRepository } from './user-info.repository';
 import { RedisService } from '../redis/redis.service';
@@ -107,7 +108,16 @@ export class UserInfoService {
     return user;
   }
 
-  async create(dto: CreateUserInfoDto): Promise<UserInfoDocument> {
+  async create(
+    dto: CreateUserInfoDto,
+    callerRole?: string,
+  ): Promise<UserInfoDocument> {
+    if (callerRole !== 'admin' && dto.role === 'admin') {
+      throw new ForbiddenException(
+        'Only admin can create users with admin role',
+      );
+    }
+
     const exists = await this.userInfoRepository.existsByUniqueFields(
       dto.userId,
       dto.accountNumber,
@@ -125,10 +135,17 @@ export class UserInfoService {
   async update(
     userId: string,
     dto: UpdateUserInfoDto,
+    callerRole?: string,
   ): Promise<UserInfoDocument> {
     const existing = await this.userInfoRepository.findOne({ userId });
     if (!existing) {
       throw new NotFoundException('UserInfo', userId);
+    }
+
+    if (callerRole !== 'admin' && dto.role === 'admin') {
+      throw new ForbiddenException(
+        'Only admin can assign admin role',
+      );
     }
 
     if (dto.accountNumber || dto.emailAddress || dto.registrationNumber) {

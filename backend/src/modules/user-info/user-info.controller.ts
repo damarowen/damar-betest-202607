@@ -7,9 +7,9 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,7 +18,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { UserInfoService } from './user-info.service';
 import { CreateUserInfoDto } from './dto/create-user-info.dto';
 import { UpdateUserInfoDto } from './dto/update-user-info.dto';
@@ -26,12 +26,12 @@ import { ListUserInfoDto } from './dto/list-user-info.dto';
 
 @ApiTags('User Info')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('user-infos')
 export class UserInfoController {
   constructor(private readonly userInfoService: UserInfoService) {}
 
   @Get()
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'List User Info with filter and sort' })
   @ApiQuery({ name: 'fullName', required: false })
   @ApiQuery({ name: 'role', required: false, enum: ['admin', 'user'] })
@@ -43,6 +43,7 @@ export class UserInfoController {
   }
 
   @Get('account-number/:accountNumber')
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'Get User Info by accountNumber' })
   async findByAccountNumber(
     @Param('accountNumber') accountNumber: string,
@@ -51,6 +52,7 @@ export class UserInfoController {
   }
 
   @Get('registration-number/:registrationNumber')
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'Get User Info by registrationNumber' })
   async findByRegistrationNumber(
     @Param('registrationNumber') registrationNumber: string,
@@ -59,29 +61,35 @@ export class UserInfoController {
   }
 
   @Get(':userId')
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'Get User Info detail by userId' })
   async findById(@Param('userId') userId: string) {
     return this.userInfoService.findById(userId);
   }
 
   @Post()
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'Create new User Info' })
   @ApiResponse({ status: 201, description: 'User created' })
   @ApiResponse({ status: 409, description: 'Duplicate unique field' })
-  async create(@Body() dto: CreateUserInfoDto) {
-    return this.userInfoService.create(dto);
+  @ApiResponse({ status: 403, description: 'Forbidden: user cannot create admin' })
+  async create(@Body() dto: CreateUserInfoDto, @Req() req: any) {
+    return this.userInfoService.create(dto, req.user?.role);
   }
 
   @Put(':userId')
+  @Roles('admin', 'user')
   @ApiOperation({ summary: 'Update User Info by userId' })
   async update(
     @Param('userId') userId: string,
     @Body() dto: UpdateUserInfoDto,
+    @Req() req: any,
   ) {
-    return this.userInfoService.update(userId, dto);
+    return this.userInfoService.update(userId, dto, req.user?.role);
   }
 
   @Delete(':userId')
+  @Roles('admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete User Info by userId' })
   async delete(@Param('userId') userId: string) {

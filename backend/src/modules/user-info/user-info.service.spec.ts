@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserInfoService } from './user-info.service';
 import { UserInfoRepository } from './user-info.repository';
 import { RedisService } from '../redis/redis.service';
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import { NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 
 const mockRepository = {
   findAll: jest.fn(),
@@ -69,7 +69,7 @@ describe('UserInfoService', () => {
     await expect(service.findById('1')).rejects.toThrow(NotFoundException);
   });
 
-  it('should create user', async () => {
+  it('should create user as admin', async () => {
     const dto = {
       userId: '1',
       fullName: 'Damar',
@@ -81,7 +81,36 @@ describe('UserInfoService', () => {
     mockRepository.existsByUniqueFields.mockResolvedValue(false);
     mockRepository.create.mockResolvedValue(dto);
 
-    const result = await service.create(dto);
+    const result = await service.create(dto, 'admin');
+    expect(result).toEqual(dto);
+  });
+
+  it('should throw ForbiddenException when user creates admin', async () => {
+    const dto = {
+      userId: '1',
+      fullName: 'Damar',
+      accountNumber: '100',
+      emailAddress: 'damar@example.com',
+      registrationNumber: 'REG-1',
+      role: 'admin',
+    };
+
+    await expect(service.create(dto, 'user')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('should allow user to create user role', async () => {
+    const dto = {
+      userId: '2',
+      fullName: 'Regular',
+      accountNumber: '200',
+      emailAddress: 'regular@example.com',
+      registrationNumber: 'REG-2',
+      role: 'user',
+    };
+    mockRepository.existsByUniqueFields.mockResolvedValue(false);
+    mockRepository.create.mockResolvedValue(dto);
+
+    const result = await service.create(dto, 'user');
     expect(result).toEqual(dto);
   });
 
@@ -96,6 +125,6 @@ describe('UserInfoService', () => {
     };
     mockRepository.existsByUniqueFields.mockResolvedValue(true);
 
-    await expect(service.create(dto)).rejects.toThrow(ConflictException);
+    await expect(service.create(dto, 'admin')).rejects.toThrow(ConflictException);
   });
 });

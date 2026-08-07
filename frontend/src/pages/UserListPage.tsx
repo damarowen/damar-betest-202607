@@ -16,19 +16,17 @@ export default function UserListPage() {
   const { users, total, loading, deleting, filter, error } = useSelector(
     (state: RootState) => state.userInfo,
   );
+  const role = useSelector((state: RootState) => state.auth.role);
+  const isAdmin = role === 'admin';
 
   const [deleteTarget, setDeleteTarget] = useState<UserInfo | null>(null);
-
-  useEffect(() => {
-    dispatch(fetchUsersStart(filter));
-  }, [dispatch, filter.page, filter.limit, filter.sort, filter.role]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
       dispatch(fetchUsersStart(filter));
     }, 300);
     return () => clearTimeout(timeout);
-  }, [dispatch, filter.fullName]);
+  }, [dispatch, filter]);
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     dispatch(setFilter({ ...filter, sort: e.target.value, page: 1 }));
@@ -158,13 +156,15 @@ export default function UserListPage() {
                     >
                       Edit
                     </Link>
-                    <button
-                      onClick={() => setDeleteTarget(user)}
-                      disabled={deleting}
-                      className="text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
-                    >
-                      Delete
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setDeleteTarget(user)}
+                        disabled={deleting}
+                        className="text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))

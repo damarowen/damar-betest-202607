@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -21,6 +21,8 @@ export default function UserFormPage() {
   const { selectedUser, loading, creating, updating, error } = useSelector(
     (state: RootState) => state.userInfo,
   );
+  const role = useSelector((state: RootState) => state.auth.role);
+  const isAdmin = role === 'admin';
 
   const [finished, setFinished] = useState(false);
 
@@ -80,6 +82,14 @@ export default function UserFormPage() {
   };
 
   const isBusy = creating || updating || loading;
+
+  if (isEdit && !selectedUser) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-slate-500">Loading user data...</div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -145,12 +155,17 @@ export default function UserFormPage() {
           </label>
           <select
             {...register('role', { required: true })}
-            disabled={isBusy}
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+            disabled={isBusy || !isAdmin}
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100"
           >
-            <option value="admin">Admin</option>
             <option value="user">User</option>
+            {isAdmin && <option value="admin">Admin</option>}
           </select>
+          {!isAdmin && (
+            <p className="mt-1 text-xs text-slate-500">
+              You can only create users with role "user".
+            </p>
+          )}
         </div>
 
         {error && (
@@ -181,19 +196,20 @@ export default function UserFormPage() {
   );
 }
 
-function FormInput(
-  props: React.InputHTMLAttributes<HTMLInputElement> & {
+const FormInput = React.forwardRef<
+  HTMLInputElement,
+  React.InputHTMLAttributes<HTMLInputElement> & {
     label: string;
     error?: string;
-  },
-) {
-  const { label, error, ...inputProps } = props;
+  }
+>(({ label, error, ...inputProps }, ref) => {
   return (
     <div>
       <label className="block text-sm font-medium text-slate-700 mb-1">
         {label}
       </label>
       <input
+        ref={ref}
         {...inputProps}
         className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition ${
           error
@@ -204,4 +220,5 @@ function FormInput(
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </div>
   );
-}
+});
+FormInput.displayName = 'FormInput';

@@ -25,21 +25,32 @@ import {
   UserInfoFilter,
 } from '../../types/user-info';
 
-const CACHE_KEY = 'users:list';
 const CACHE_DETAIL_PREFIX = 'users:detail:';
 
 export const createCache = () => new CacheService();
 
+function buildListCacheKey(filter: UserInfoFilter): string {
+  const parts = [
+    `p${filter.page || 1}`,
+    `l${filter.limit || 10}`,
+    filter.sort || 'fullName',
+    filter.role || 'all',
+    filter.fullName ? `s${filter.fullName}` : 's',
+  ];
+  return `users:list:${parts.join(':')}`;
+}
+
 export function* fetchUsersSaga(action: ReturnType<typeof fetchUsersStart>) {
   const filter: UserInfoFilter = action.payload || {};
   const cache = createCache();
+  const cacheKey = buildListCacheKey(filter);
 
   try {
     const isOnline = navigator.onLine;
     yield put(setOnlineStatus(isOnline));
 
     if (!isOnline) {
-      const cached = cache.get<UserInfoListResponse>(CACHE_KEY);
+      const cached = cache.get<UserInfoListResponse>(cacheKey);
       if (cached) {
         yield put(fetchUsersSuccess(cached));
         return;
@@ -52,7 +63,7 @@ export function* fetchUsersSaga(action: ReturnType<typeof fetchUsersStart>) {
       '/user-infos',
       { params: filter },
     );
-    cache.set(CACHE_KEY, response.data);
+    cache.set(cacheKey, response.data);
     yield put(fetchUsersSuccess(response.data));
   } catch (error: any) {
     yield put(
@@ -142,7 +153,7 @@ export function* createUserSaga(action: ReturnType<typeof createUserStart>) {
       '/user-infos',
       action.payload,
     );
-    cache.remove(CACHE_KEY);
+    cache.delPattern('users:list:*');
     yield put(createUserSuccess(response.data));
   } catch (error: any) {
     yield put(
@@ -167,7 +178,7 @@ export function* updateUserSaga(action: ReturnType<typeof updateUserStart>) {
       `/user-infos/${userId}`,
       data,
     );
-    cache.remove(CACHE_KEY);
+    cache.delPattern('users:list:*');
     cache.remove(`${CACHE_DETAIL_PREFIX}${userId}`);
     yield put(updateUserSuccess(response.data));
   } catch (error: any) {
@@ -189,7 +200,7 @@ export function* deleteUserSaga(action: ReturnType<typeof deleteUserStart>) {
 
     const userId = action.payload;
     yield call([api, 'delete'], `/user-infos/${userId}`);
-    cache.remove(CACHE_KEY);
+    cache.delPattern('users:list:*');
     cache.remove(`${CACHE_DETAIL_PREFIX}${userId}`);
     yield put(deleteUserSuccess(userId));
   } catch (error: any) {
