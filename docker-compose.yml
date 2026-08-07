@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  mongo:
+    container_name: db_damar_backend_betest
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - damar-network
+
+  redis:
+    container_name: redis_damar_backend_betest
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - damar-network
+
+  backend:
+    container_name: ms-damar-backend-betest
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongo:27017/db_damar_backend_betest
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key_here}
+      - JWT_EXPIRES_IN=1d
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CORS_ORIGIN=http://localhost:8080
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - damar-network
+
+  frontend:
+    container_name: damar-backend-betest-frontend
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - damar-network
+
+volumes:
+  mongo_data:
+
+networks:
+  damar-network:
+    driver: bridge
