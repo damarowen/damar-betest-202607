@@ -17,6 +17,7 @@ import {
   deleteUserStart,
   deleteUserSuccess,
   deleteUserFailure,
+  fetchUserByRegistrationNumberStart,
   setOnlineStatus,
 } from '../slices/userInfo.slice';
 import {
@@ -75,8 +76,8 @@ export function* fetchUsersSaga(action: ReturnType<typeof fetchUsersStart>) {
 }
 
 export function* fetchUserSaga(action: ReturnType<typeof fetchUserStart>) {
-  const userId = action.payload;
-  const cacheKey = `${CACHE_DETAIL_PREFIX}${userId}`;
+  const id = action.payload;
+  const cacheKey = `${CACHE_DETAIL_PREFIX}${id}`;
   const cache = createCache();
 
   try {
@@ -94,7 +95,7 @@ export function* fetchUserSaga(action: ReturnType<typeof fetchUserStart>) {
 
     const response: { data: UserInfo } = yield call(
       [api, 'get'],
-      `/user-infos/${userId}`,
+      `/user-infos/${id}`,
     );
     cache.set(cacheKey, response.data);
     yield put(fetchUserSuccess(response.data));
@@ -140,6 +141,41 @@ export function* fetchUserByAccountNumberSaga(action: any) {
   }
 }
 
+export function* fetchUserByRegistrationNumberSaga(
+  action: ReturnType<typeof fetchUserByRegistrationNumberStart>,
+) {
+  const registrationNumber = action.payload;
+  const cacheKey = `${CACHE_DETAIL_PREFIX}registration:${registrationNumber}`;
+  const cache = createCache();
+
+  try {
+    const isOnline = navigator.onLine;
+    yield put(setOnlineStatus(isOnline));
+
+    if (!isOnline) {
+      const cached = cache.get<UserInfo>(cacheKey);
+      if (cached) {
+        yield put(fetchUserSuccess(cached));
+        return;
+      }
+      throw new Error('No cached data available');
+    }
+
+    const response: { data: UserInfo } = yield call(
+      [api, 'get'],
+      `/user-infos/registration-number/${registrationNumber}`,
+    );
+    cache.set(cacheKey, response.data);
+    yield put(fetchUserSuccess(response.data));
+  } catch (error: any) {
+    yield put(
+      fetchUserFailure(
+        error.response?.data?.message || error.message || 'Failed to fetch user',
+      ),
+    );
+  }
+}
+
 export function* createUserSaga(action: ReturnType<typeof createUserStart>) {
   const cache = createCache();
 
@@ -172,14 +208,14 @@ export function* updateUserSaga(action: ReturnType<typeof updateUserStart>) {
       throw new Error('You are offline. Cannot update user.');
     }
 
-    const { userId, data } = action.payload;
+    const { id, data } = action.payload;
     const response: { data: UserInfo } = yield call(
       [api, 'put'],
-      `/user-infos/${userId}`,
+      `/user-infos/${id}`,
       data,
     );
     cache.delPattern('users:list:*');
-    cache.remove(`${CACHE_DETAIL_PREFIX}${userId}`);
+    cache.remove(`${CACHE_DETAIL_PREFIX}${id}`);
     yield put(updateUserSuccess(response.data));
   } catch (error: any) {
     yield put(
@@ -198,11 +234,11 @@ export function* deleteUserSaga(action: ReturnType<typeof deleteUserStart>) {
       throw new Error('You are offline. Cannot delete user.');
     }
 
-    const userId = action.payload;
-    yield call([api, 'delete'], `/user-infos/${userId}`);
+    const id = action.payload;
+    yield call([api, 'delete'], `/user-infos/${id}`);
     cache.delPattern('users:list:*');
-    cache.remove(`${CACHE_DETAIL_PREFIX}${userId}`);
-    yield put(deleteUserSuccess(userId));
+    cache.remove(`${CACHE_DETAIL_PREFIX}${id}`);
+    yield put(deleteUserSuccess(id));
   } catch (error: any) {
     yield put(
       deleteUserFailure(
@@ -227,6 +263,13 @@ function* watchFetchUserByAccountNumber() {
   );
 }
 
+function* watchFetchUserByRegistrationNumber() {
+  yield takeLatest(
+    'userInfo/fetchUserByRegistrationNumberStart',
+    fetchUserByRegistrationNumberSaga,
+  );
+}
+
 function* watchCreateUser() {
   yield takeEvery('userInfo/createUserStart', createUserSaga);
 }
@@ -244,6 +287,7 @@ export default function* userInfoSaga() {
     watchFetchUsers(),
     watchFetchUser(),
     watchFetchUserByAccountNumber(),
+    watchFetchUserByRegistrationNumber(),
     watchCreateUser(),
     watchUpdateUser(),
     watchDeleteUser(),

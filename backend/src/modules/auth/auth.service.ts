@@ -4,12 +4,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { AccountLogin } from '../account-login/schemas/account-login.schema';
-import { UserInfo, UserInfoSchema } from '../user-info/schemas/user-info.schema';
+import { UserInfo } from '../user-info/schemas/user-info.schema';
 
 export interface AuthPayload {
-  accountId: string;
+  accountLoginId: string;
   userName: string;
-  userId: string;
+  userInfoId: string;
   role?: string;
 }
 
@@ -46,19 +46,23 @@ export class AuthService {
     }
 
     await this.accountLoginModel.updateOne(
-      { accountId: account.accountId },
+      { _id: account._id },
       { lastLoginDateTime: new Date() },
     );
 
     const userInfo = await this.userInfoModel
-      .findOne({ userId: account.userId })
+      .findOne({ _id: account.userInfoId })
       .lean()
       .exec();
 
+    if (!account.userInfoId) {
+      throw new UnauthorizedException('Account has no associated user info');
+    }
+
     return {
-      accountId: account.accountId,
+      accountLoginId: account._id.toString(),
       userName: account.userName,
-      userId: account.userId,
+      userInfoId: account.userInfoId.toString(),
       role: userInfo?.role,
     };
   }

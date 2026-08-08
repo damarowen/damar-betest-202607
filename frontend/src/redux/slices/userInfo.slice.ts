@@ -96,6 +96,15 @@ const userInfoSlice = createSlice({
       state.error = null;
     },
 
+    fetchUserByRegistrationNumberStart: (
+      state,
+      _action: PayloadAction<string>,
+    ) => {
+      state.loading = true;
+      state.selectedUser = null;
+      state.error = null;
+    },
+
     createUserStart: (
       state,
       _action: PayloadAction<UserInfoFormData>,
@@ -115,7 +124,7 @@ const userInfoSlice = createSlice({
 
     updateUserStart: (
       state,
-      _action: PayloadAction<{ userId: string; data: Partial<UserInfoFormData> }>,
+      _action: PayloadAction<{ id: string; data: Partial<UserInfoFormData> }>,
     ) => {
       state.updating = true;
       state.error = null;
@@ -123,9 +132,9 @@ const userInfoSlice = createSlice({
     updateUserSuccess: (state, action: PayloadAction<UserInfo>) => {
       state.updating = false;
       state.users = state.users.map((user) =>
-        user.userId === action.payload.userId ? action.payload : user,
+        user._id === action.payload._id ? action.payload : user,
       );
-      if (state.selectedUser?.userId === action.payload.userId) {
+      if (state.selectedUser?._id === action.payload._id) {
         state.selectedUser = action.payload;
       }
     },
@@ -141,10 +150,10 @@ const userInfoSlice = createSlice({
     deleteUserSuccess: (state, action: PayloadAction<string>) => {
       state.deleting = false;
       state.users = state.users.filter(
-        (user) => user.userId !== action.payload,
+        (user) => user._id !== action.payload,
       );
       state.total -= 1;
-      if (state.selectedUser?.userId === action.payload) {
+      if (state.selectedUser?._id === action.payload) {
         state.selectedUser = null;
       }
     },
@@ -167,6 +176,7 @@ export const {
   fetchUserSuccess,
   fetchUserFailure,
   fetchUserByAccountNumberStart,
+  fetchUserByRegistrationNumberStart,
   createUserStart,
   createUserSuccess,
   createUserFailure,

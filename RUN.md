@@ -130,7 +130,7 @@ Seed aman dijalankan berulang — jika data sudah ada, akan skip otomatis.
 Jalankan seed di dalam container:
 
 ```bash
-docker exec ms-damar-backend-betest npx ts-node src/seed.ts
+docker exec ms-damar-backend-betest node dist/seed.js
 ```
 
 ---

@@ -54,6 +54,15 @@ cd frontend && cp .env.example .env && npm install && npm run dev
 | Backend API | http://localhost:3000/api |
 | Swagger UI | http://localhost:3000/api/docs |
 
+## Default Login Credentials
+
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | `admin` | `admin123` |
+| User | `user` | `user123` |
+
+> Credentials dibuat oleh `npm run seed`. Seed aman dijalankan berulang — jika data sudah ada, akan skip otomatis.
+
 ## Tech Stack
 
 - **Backend:** NestJS, MongoDB, Mongoose, Redis, JWT, Swagger

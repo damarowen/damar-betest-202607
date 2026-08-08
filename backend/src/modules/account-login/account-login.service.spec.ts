@@ -36,7 +36,7 @@ describe('AccountLoginService', () => {
   });
 
   it('should find all accounts', async () => {
-    const accounts = [{ accountId: 'acc-1', userName: 'damar' }];
+    const accounts = [{ _id: 'abc123', userName: 'damar' }];
     mockRepository.findAll.mockResolvedValue(accounts);
     mockRepository.count.mockResolvedValue(1);
 
@@ -46,7 +46,7 @@ describe('AccountLoginService', () => {
   });
 
   it('should find inactive accounts', async () => {
-    const accounts = [{ accountId: 'acc-1', lastLoginDateTime: new Date() }];
+    const accounts = [{ _id: 'abc123', lastLoginDateTime: new Date() }];
     mockRepository.findInactive.mockResolvedValue(accounts);
 
     const result = await service.findInactive(3);
@@ -56,10 +56,9 @@ describe('AccountLoginService', () => {
 
   it('should create account with hashed password', async () => {
     const dto = {
-      accountId: 'acc-1',
       userName: 'damar',
       password: 'plain',
-      userId: 'user-1',
+      userInfoId: '507f1f77bcf86cd799439011',
     };
     mockRepository.findOne.mockResolvedValue(null);
     mockRepository.create.mockResolvedValue({ ...dto, password: 'hashed' });

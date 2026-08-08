@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../src/app.module';
+import { AppModule } from './app.module';
 import { getModelToken } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { Model } from 'mongoose';
@@ -13,7 +13,6 @@ async function seed() {
 
   console.log('Seeding database...');
 
-  // Cek apakah user sudah ada
   const existing = await accountLoginModel.findOne({ userName: 'admin' }).exec();
   if (existing) {
     console.log('Seed data already exists. Skipping.');
@@ -21,46 +20,39 @@ async function seed() {
     return;
   }
 
-  // Buat UserInfo
-  const userInfo = await userInfoModel.create({
-    userId: 'user-admin-001',
+  const adminUser = await userInfoModel.create({
     fullName: 'Admin User',
     accountNumber: '100000000',
     emailAddress: 'admin@example.com',
     registrationNumber: 'REG-2024-0001',
     role: 'admin',
   });
-  console.log('Created UserInfo:', userInfo.fullName);
+  console.log('Created UserInfo:', adminUser.fullName);
 
-  // Buat AccountLogin
   const hashedPassword = await bcrypt.hash('admin123', 10);
-  const accountLogin = await accountLoginModel.create({
-    accountId: 'acc-admin-001',
+  await accountLoginModel.create({
     userName: 'admin',
     password: hashedPassword,
     lastLoginDateTime: new Date(),
-    userId: 'user-admin-001',
+    userInfoId: adminUser._id,
   });
-  console.log('Created AccountLogin:', accountLogin.userName);
+  console.log('Created AccountLogin: admin');
 
-  // Tambah user biasa juga
-  const userInfo2 = await userInfoModel.create({
-    userId: 'user-002',
+  const regularUser = await userInfoModel.create({
     fullName: 'Regular User',
     accountNumber: '100000001',
     emailAddress: 'user@example.com',
     registrationNumber: 'REG-2024-0002',
     role: 'user',
   });
-  const accountLogin2 = await accountLoginModel.create({
-    accountId: 'acc-002',
+  await accountLoginModel.create({
     userName: 'user',
     password: await bcrypt.hash('user123', 10),
     lastLoginDateTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    userId: 'user-002',
+    userInfoId: regularUser._id,
   });
-  console.log('Created UserInfo:', userInfo2.fullName);
-  console.log('Created AccountLogin:', accountLogin2.userName);
+  console.log('Created UserInfo:', regularUser.fullName);
+  console.log('Created AccountLogin: user');
 
   console.log('\n========================================');
   console.log('  Seed completed!');

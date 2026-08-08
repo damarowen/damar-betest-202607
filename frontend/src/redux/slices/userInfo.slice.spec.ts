@@ -38,7 +38,7 @@ describe('userInfo slice', () => {
   });
 
   it('should handle fetchUsersSuccess', () => {
-    const payload = { data: [{ userId: '1', fullName: 'Damar' }], total: 1 };
+    const payload = { data: [{ _id: 'abc123', fullName: 'Damar' }], total: 1 };
     const state = userInfoReducer(initialState, fetchUsersSuccess(payload));
     expect(state.loading).toBe(false);
     expect(state.users).toEqual(payload.data);
@@ -52,20 +52,20 @@ describe('userInfo slice', () => {
   });
 
   it('should handle fetchUserStart', () => {
-    const state = userInfoReducer(initialState, fetchUserStart('1'));
+    const state = userInfoReducer(initialState, fetchUserStart('abc123'));
     expect(state.loading).toBe(true);
     expect(state.selectedUser).toBeNull();
   });
 
   it('should handle fetchUserSuccess', () => {
-    const user = { userId: '1', fullName: 'Damar' };
+    const user = { _id: 'abc123', fullName: 'Damar' };
     const state = userInfoReducer(initialState, fetchUserSuccess(user));
     expect(state.loading).toBe(false);
     expect(state.selectedUser).toEqual(user);
   });
 
   it('should handle createUserSuccess', () => {
-    const user = { userId: '1', fullName: 'Damar' };
+    const user = { _id: 'abc123', fullName: 'Damar' };
     const state = userInfoReducer(
       { ...initialState, creating: true },
       createUserSuccess(user),
@@ -76,9 +76,9 @@ describe('userInfo slice', () => {
   });
 
   it('should handle updateUserSuccess', () => {
-    const user = { userId: '1', fullName: 'Updated' };
+    const user = { _id: 'abc123', fullName: 'Updated' };
     const state = userInfoReducer(
-      { ...initialState, users: [{ userId: '1', fullName: 'Damar' }], updating: true },
+      { ...initialState, users: [{ _id: 'abc123', fullName: 'Damar' }], updating: true },
       updateUserSuccess(user),
     );
     expect(state.updating).toBe(false);
@@ -87,8 +87,8 @@ describe('userInfo slice', () => {
 
   it('should handle deleteUserSuccess', () => {
     const state = userInfoReducer(
-      { ...initialState, users: [{ userId: '1', fullName: 'Damar' }], deleting: true, total: 1 },
-      deleteUserSuccess('1'),
+      { ...initialState, users: [{ _id: 'abc123', fullName: 'Damar' }], deleting: true, total: 1 },
+      deleteUserSuccess('abc123'),
     );
     expect(state.deleting).toBe(false);
     expect(state.users).toHaveLength(0);

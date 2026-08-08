@@ -47,11 +47,11 @@ export class AccountLoginController {
     return this.accountLoginService.findInactive(3);
   }
 
-  @Get(':accountId')
+  @Get(':id')
   @Roles('admin', 'user')
-  @ApiOperation({ summary: 'Get Account Login detail by accountId' })
-  async findById(@Param('accountId') accountId: string) {
-    return this.accountLoginService.findById(accountId);
+  @ApiOperation({ summary: 'Get Account Login detail by id' })
+  async findById(@Param('id') id: string) {
+    return this.accountLoginService.findById(id);
   }
 
   @Post()
@@ -63,21 +63,21 @@ export class AccountLoginController {
     return this.accountLoginService.create(dto);
   }
 
-  @Put(':accountId')
+  @Put(':id')
   @Roles('admin')
-  @ApiOperation({ summary: 'Update Account Login by accountId' })
+  @ApiOperation({ summary: 'Update Account Login by id' })
   async update(
-    @Param('accountId') accountId: string,
+    @Param('id') id: string,
     @Body() dto: UpdateAccountLoginDto,
   ) {
-    return this.accountLoginService.update(accountId, dto);
+    return this.accountLoginService.update(id, dto);
   }
 
-  @Delete(':accountId')
+  @Delete(':id')
   @Roles('admin')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete Account Login by accountId' })
-  async delete(@Param('accountId') accountId: string) {
-    return this.accountLoginService.delete(accountId);
+  @ApiOperation({ summary: 'Delete Account Login by id' })
+  async delete(@Param('id') id: string) {
+    return this.accountLoginService.delete(id);
   }
 }

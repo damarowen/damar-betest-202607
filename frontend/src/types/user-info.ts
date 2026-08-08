@@ -1,6 +1,5 @@
 export interface UserInfo {
-  _id?: string;
-  userId: string;
+  _id: string;
   fullName: string;
   accountNumber: string;
   emailAddress: string;
@@ -8,6 +7,8 @@ export interface UserInfo {
   role: 'admin' | 'user';
   createdAt?: string;
   updatedAt?: string;
+  accountId?: string | null;
+  lastLoginDateTime?: string | null;
 }
 
 export interface UserInfoListResponse {
@@ -24,10 +25,11 @@ export interface UserInfoFilter {
 }
 
 export interface UserInfoFormData {
-  userId: string;
   fullName: string;
   accountNumber: string;
   emailAddress: string;
   registrationNumber: string;
   role: 'admin' | 'user';
+  userName?: string;
+  password?: string;
 }

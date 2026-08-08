@@ -1,8 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getModelToken } from '@nestjs/mongoose';
 import { UserInfoService } from './user-info.service';
 import { UserInfoRepository } from './user-info.repository';
 import { RedisService } from '../redis/redis.service';
 import { NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+
+jest.mock('bcrypt', () => ({
+  hash: jest.fn().mockResolvedValue('hashed'),
+}));
 
 const mockRepository = {
   findAll: jest.fn(),
@@ -22,6 +27,14 @@ const mockRedisService = {
   del: jest.fn(),
 };
 
+const mockAccountLoginModel = {
+  find: jest.fn().mockReturnThis(),
+  select: jest.fn().mockReturnThis(),
+  lean: jest.fn().mockResolvedValue([]),
+  findOne: jest.fn().mockResolvedValue(null),
+  create: jest.fn(),
+};
+
 describe('UserInfoService', () => {
   let service: UserInfoService;
 
@@ -31,6 +44,7 @@ describe('UserInfoService', () => {
         UserInfoService,
         { provide: UserInfoRepository, useValue: mockRepository },
         { provide: RedisService, useValue: mockRedisService },
+        { provide: getModelToken('AccountLogin'), useValue: mockAccountLoginModel },
       ],
     }).compile();
 
@@ -43,21 +57,41 @@ describe('UserInfoService', () => {
   });
 
   it('should find all users', async () => {
-    const users = [{ userId: '1', fullName: 'Damar' }];
+    const users = [{ _id: 'abc123', fullName: 'Damar', toObject: () => ({ _id: 'abc123', fullName: 'Damar' }) }];
     mockRepository.findAll.mockResolvedValue(users);
     mockRepository.count.mockResolvedValue(1);
+    mockAccountLoginModel.find.mockReturnThis();
+    mockAccountLoginModel.select.mockReturnThis();
+    mockAccountLoginModel.lean.mockResolvedValue([]);
 
     const result = await service.findAll({});
-    expect(result.data).toEqual(users);
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]._id).toBe('abc123');
+    expect(result.data[0].accountId).toBeNull();
+    expect(result.data[0].lastLoginDateTime).toBeNull();
     expect(result.total).toBe(1);
   });
 
+  it('should enrich users with account-login data', async () => {
+    const users = [{ _id: 'abc123', fullName: 'Damar', toObject: () => ({ _id: 'abc123', fullName: 'Damar' }) }];
+    const accounts = [{ _id: 'acc001', userInfoId: 'abc123', lastLoginDateTime: new Date('2026-08-08') }];
+    mockRepository.findAll.mockResolvedValue(users);
+    mockRepository.count.mockResolvedValue(1);
+    mockAccountLoginModel.find.mockReturnThis();
+    mockAccountLoginModel.select.mockReturnThis();
+    mockAccountLoginModel.lean.mockResolvedValue(accounts);
+
+    const result = await service.findAll({});
+    expect(result.data[0].accountId).toBe('acc001');
+    expect(result.data[0].lastLoginDateTime).toEqual(new Date('2026-08-08'));
+  });
+
   it('should find user by id with cache', async () => {
-    const user = { userId: '1', fullName: 'Damar' };
+    const user = { _id: 'abc123', fullName: 'Damar' };
     mockRedisService.get.mockResolvedValue(null);
     mockRepository.findOne.mockResolvedValue(user);
 
-    const result = await service.findById('1');
+    const result = await service.findById('abc123');
     expect(result).toEqual(user);
     expect(mockRedisService.set).toHaveBeenCalled();
   });
@@ -66,33 +100,37 @@ describe('UserInfoService', () => {
     mockRedisService.get.mockResolvedValue(null);
     mockRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.findById('1')).rejects.toThrow(NotFoundException);
+    await expect(service.findById('abc123')).rejects.toThrow(NotFoundException);
   });
 
   it('should create user as admin', async () => {
     const dto = {
-      userId: '1',
       fullName: 'Damar',
       accountNumber: '100',
       emailAddress: 'damar@example.com',
       registrationNumber: 'REG-1',
       role: 'admin',
+      userName: 'damar',
+      password: 'password123',
     };
     mockRepository.existsByUniqueFields.mockResolvedValue(false);
-    mockRepository.create.mockResolvedValue(dto);
+    mockAccountLoginModel.findOne.mockResolvedValue(null);
+    mockRepository.create.mockResolvedValue({ _id: 'abc123', ...dto });
 
     const result = await service.create(dto, 'admin');
-    expect(result).toEqual(dto);
+    expect(result.fullName).toBe('Damar');
+    expect(mockAccountLoginModel.create).toHaveBeenCalled();
   });
 
   it('should throw ForbiddenException when user creates admin', async () => {
     const dto = {
-      userId: '1',
       fullName: 'Damar',
       accountNumber: '100',
       emailAddress: 'damar@example.com',
       registrationNumber: 'REG-1',
       role: 'admin',
+      userName: 'damar',
+      password: 'password123',
     };
 
     await expect(service.create(dto, 'user')).rejects.toThrow(ForbiddenException);
@@ -100,31 +138,79 @@ describe('UserInfoService', () => {
 
   it('should allow user to create user role', async () => {
     const dto = {
-      userId: '2',
       fullName: 'Regular',
       accountNumber: '200',
       emailAddress: 'regular@example.com',
       registrationNumber: 'REG-2',
       role: 'user',
+      userName: 'regular',
+      password: 'password123',
     };
     mockRepository.existsByUniqueFields.mockResolvedValue(false);
-    mockRepository.create.mockResolvedValue(dto);
+    mockAccountLoginModel.findOne.mockResolvedValue(null);
+    mockRepository.create.mockResolvedValue({ _id: 'def456', ...dto });
 
     const result = await service.create(dto, 'user');
-    expect(result).toEqual(dto);
+    expect(result.fullName).toBe('Regular');
+    expect(mockAccountLoginModel.create).toHaveBeenCalled();
   });
 
   it('should throw ConflictException on duplicate', async () => {
     const dto = {
-      userId: '1',
       fullName: 'Damar',
       accountNumber: '100',
       emailAddress: 'damar@example.com',
       registrationNumber: 'REG-1',
       role: 'admin',
+      userName: 'damar',
+      password: 'password123',
     };
     mockRepository.existsByUniqueFields.mockResolvedValue(true);
 
     await expect(service.create(dto, 'admin')).rejects.toThrow(ConflictException);
+  });
+
+  it('should throw ConflictException on duplicate userName', async () => {
+    const dto = {
+      fullName: 'Damar',
+      accountNumber: '100',
+      emailAddress: 'damar@example.com',
+      registrationNumber: 'REG-1',
+      role: 'admin',
+      userName: 'damar',
+      password: 'password123',
+    };
+    mockRepository.existsByUniqueFields.mockResolvedValue(false);
+    mockAccountLoginModel.findOne.mockResolvedValue({ userName: 'damar' });
+
+    await expect(service.create(dto, 'admin')).rejects.toThrow(ConflictException);
+  });
+
+  it('should allow user to update own data', async () => {
+    const existing = { _id: 'abc123', fullName: 'Damar', accountNumber: '100', emailAddress: 'damar@example.com', registrationNumber: 'REG-1' };
+    const dto = { fullName: 'Updated' };
+    mockRepository.findOne.mockResolvedValue(existing);
+    mockRepository.update.mockResolvedValue({ ...existing, ...dto });
+
+    const result = await service.update('abc123', dto, 'user', 'abc123');
+    expect(result.fullName).toBe('Updated');
+  });
+
+  it('should throw ForbiddenException when user edits other user data', async () => {
+    const existing = { _id: 'abc123', fullName: 'Damar', accountNumber: '100', emailAddress: 'damar@example.com', registrationNumber: 'REG-1' };
+    const dto = { fullName: 'Updated' };
+    mockRepository.findOne.mockResolvedValue(existing);
+
+    await expect(service.update('abc123', dto, 'user', 'xyz789')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('should allow admin to update any user data', async () => {
+    const existing = { _id: 'abc123', fullName: 'Damar', accountNumber: '100', emailAddress: 'damar@example.com', registrationNumber: 'REG-1' };
+    const dto = { fullName: 'Updated' };
+    mockRepository.findOne.mockResolvedValue(existing);
+    mockRepository.update.mockResolvedValue({ ...existing, ...dto });
+
+    const result = await service.update('abc123', dto, 'admin', 'admin-id');
+    expect(result.fullName).toBe('Updated');
   });
 });

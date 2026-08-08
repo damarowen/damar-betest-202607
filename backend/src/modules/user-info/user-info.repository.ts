@@ -26,13 +26,11 @@ export class UserInfoRepository extends BaseRepository<UserInfoDocument> {
   }
 
   async existsByUniqueFields(
-    userId?: string,
     accountNumber?: string,
     emailAddress?: string,
     registrationNumber?: string,
   ): Promise<boolean> {
     const orConditions: any[] = [];
-    if (userId) orConditions.push({ userId });
     if (accountNumber) orConditions.push({ accountNumber });
     if (emailAddress) orConditions.push({ emailAddress });
     if (registrationNumber) orConditions.push({ registrationNumber });

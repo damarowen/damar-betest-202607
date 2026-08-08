@@ -40,7 +40,7 @@ vi.mock('../../api/axios', () => ({
 }));
 
 const mockUser = {
-  userId: 'user-1',
+  _id: 'abc123',
   fullName: 'Damar',
   accountNumber: '100',
   emailAddress: 'damar@example.com',
@@ -105,10 +105,10 @@ describe('userInfo saga', () => {
   it('should fetch user detail', () => {
     const response = { data: mockUser };
 
-    const gen = fetchUserSaga(fetchUserStart('user-1'));
+    const gen = fetchUserSaga(fetchUserStart('abc123'));
 
     expect(gen.next().value).toEqual(put(setOnlineStatus(true)));
-    expect(gen.next().value).toEqual(call([api, 'get'], '/user-infos/user-1'));
+    expect(gen.next().value).toEqual(call([api, 'get'], '/user-infos/abc123'));
     expect(gen.next(response).value).toEqual(put(fetchUserSuccess(mockUser)));
     expect(gen.next().done).toBe(true);
   });
@@ -116,10 +116,10 @@ describe('userInfo saga', () => {
   it('should create user', () => {
     const response = { data: mockUser };
 
-    const gen = createUserSaga(createUserStart(mockUser));
+    const gen = createUserSaga(createUserStart({ fullName: 'Damar', accountNumber: '100', emailAddress: 'damar@example.com', registrationNumber: 'REG-1', role: 'admin' }));
 
     expect(gen.next().value).toEqual(
-      call([api, 'post'], '/user-infos', mockUser),
+      call([api, 'post'], '/user-infos', { fullName: 'Damar', accountNumber: '100', emailAddress: 'damar@example.com', registrationNumber: 'REG-1', role: 'admin' }),
     );
     expect(gen.next(response).value).toEqual(put(createUserSuccess(mockUser)));
     expect(gen.next().done).toBe(true);
@@ -128,7 +128,7 @@ describe('userInfo saga', () => {
   it('should fail create user when offline', () => {
     Object.defineProperty(navigator, 'onLine', { value: false, writable: true });
 
-    const gen = createUserSaga(createUserStart(mockUser));
+    const gen = createUserSaga(createUserStart({ fullName: 'Damar', accountNumber: '100', emailAddress: 'damar@example.com', registrationNumber: 'REG-1', role: 'admin' }));
 
     expect(gen.next().value).toEqual(
       put(createUserFailure('You are offline. Cannot create user.')),
@@ -140,21 +140,21 @@ describe('userInfo saga', () => {
     const response = { data: mockUser };
 
     const gen = updateUserSaga(
-      updateUserStart({ userId: 'user-1', data: { fullName: 'Updated' } }),
+      updateUserStart({ id: 'abc123', data: { fullName: 'Updated' } }),
     );
 
     expect(gen.next().value).toEqual(
-      call([api, 'put'], '/user-infos/user-1', { fullName: 'Updated' }),
+      call([api, 'put'], '/user-infos/abc123', { fullName: 'Updated' }),
     );
     expect(gen.next(response).value).toEqual(put(updateUserSuccess(mockUser)));
     expect(gen.next().done).toBe(true);
   });
 
   it('should delete user and clear cache', () => {
-    const gen = deleteUserSaga(deleteUserStart('user-1'));
+    const gen = deleteUserSaga(deleteUserStart('abc123'));
 
-    expect(gen.next().value).toEqual(call([api, 'delete'], '/user-infos/user-1'));
-    expect(gen.next({}).value).toEqual(put(deleteUserSuccess('user-1')));
+    expect(gen.next().value).toEqual(call([api, 'delete'], '/user-infos/abc123'));
+    expect(gen.next({}).value).toEqual(put(deleteUserSuccess('abc123')));
     expect(gen.next().done).toBe(true);
   });
 

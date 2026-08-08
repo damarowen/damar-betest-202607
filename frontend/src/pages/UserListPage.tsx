@@ -10,6 +10,19 @@ import {
 import { UserInfo } from '../types/user-info';
 import Modal from '../components/common/Modal';
 
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('id-ID', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
 export default function UserListPage() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -46,7 +59,7 @@ export default function UserListPage() {
 
   const confirmDelete = () => {
     if (deleteTarget) {
-      dispatch(deleteUserStart(deleteTarget.userId));
+      dispatch(deleteUserStart(deleteTarget._id));
       setDeleteTarget(null);
     }
   };
@@ -106,31 +119,48 @@ export default function UserListPage() {
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Account No</th>
+              <th className="px-4 py-3">Registration No</th>
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Role</th>
+              <th className="px-4 py-3">Last Login</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                   Loading...
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                   No users found.
                 </td>
               </tr>
             ) : (
               users.map((user) => (
-                <tr key={user.userId} className="hover:bg-slate-50">
+                <tr key={user._id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-900">
                     {user.fullName}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{user.accountNumber}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      to={`/users/by-account/${encodeURIComponent(user.accountNumber)}`}
+                      className="text-emerald-600 hover:text-emerald-700 hover:underline"
+                    >
+                      {user.accountNumber}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      to={`/users/by-registration/${encodeURIComponent(user.registrationNumber)}`}
+                      className="text-emerald-600 hover:text-emerald-700 hover:underline"
+                    >
+                      {user.registrationNumber}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-slate-600">{user.emailAddress}</td>
                   <td className="px-4 py-3">
                     <span
@@ -143,15 +173,18 @@ export default function UserListPage() {
                       {user.role}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">
+                    {formatDate(user.lastLoginDateTime)}
+                  </td>
                   <td className="px-4 py-3 text-right space-x-2">
                     <Link
-                      to={`/users/${user.userId}`}
+                      to={`/users/${user._id}`}
                       className="text-emerald-600 hover:text-emerald-700 font-medium"
                     >
                       Detail
                     </Link>
                     <Link
-                      to={`/users/edit/${user.userId}`}
+                      to={`/users/edit/${user._id}`}
                       className="text-blue-600 hover:text-blue-700 font-medium"
                     >
                       Edit

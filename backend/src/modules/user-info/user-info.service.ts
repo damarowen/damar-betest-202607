@@ -4,11 +4,15 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import * as bcrypt from 'bcrypt';
 import { UserInfoRepository } from './user-info.repository';
 import { RedisService } from '../redis/redis.service';
 import { CreateUserInfoDto } from './dto/create-user-info.dto';
 import { UpdateUserInfoDto } from './dto/update-user-info.dto';
 import { UserInfoDocument } from './schemas/user-info.schema';
+import { AccountLogin } from '../account-login/schemas/account-login.schema';
 
 @Injectable()
 export class UserInfoService {
@@ -17,6 +21,8 @@ export class UserInfoService {
   constructor(
     private readonly userInfoRepository: UserInfoRepository,
     private readonly redisService: RedisService,
+    @InjectModel(AccountLogin.name)
+    private readonly accountLoginModel: Model<AccountLogin>,
   ) {}
 
   private cacheKey(key: string): string {
@@ -29,7 +35,7 @@ export class UserInfoService {
     sort?: string;
     page?: number;
     limit?: number;
-  }): Promise<{ data: UserInfoDocument[]; total: number }> {
+  }): Promise<{ data: any[]; total: number }> {
     const filter: Record<string, any> = {};
     if (query.fullName) {
       filter.fullName = { $regex: query.fullName, $options: 'i' };
@@ -54,17 +60,37 @@ export class UserInfoService {
       this.userInfoRepository.count(filter),
     ]);
 
-    return { data, total };
+    const userObjectIds = data.map((u) => u._id);
+    const accounts = await this.accountLoginModel
+      .find({ userInfoId: { $in: userObjectIds } })
+      .select('userInfoId lastLoginDateTime')
+      .lean();
+
+    const accountMap = new Map(
+      accounts.map((a) => [a.userInfoId.toString(), a]),
+    );
+
+    const enriched = data.map((user) => {
+      const obj = user.toObject ? user.toObject() : { ...user };
+      const account = accountMap.get(user._id.toString());
+      return {
+        ...obj,
+        accountId: account?._id?.toString() || null,
+        lastLoginDateTime: account?.lastLoginDateTime || null,
+      };
+    });
+
+    return { data: enriched, total };
   }
 
-  async findById(userId: string): Promise<UserInfoDocument> {
-    const cacheKey = this.cacheKey(`id:${userId}`);
+  async findById(id: string): Promise<UserInfoDocument> {
+    const cacheKey = this.cacheKey(`id:${id}`);
     const cached = await this.redisService.get<UserInfoDocument>(cacheKey);
     if (cached) return cached;
 
-    const user = await this.userInfoRepository.findOne({ userId });
+    const user = await this.userInfoRepository.findOne({ _id: id });
     if (!user) {
-      throw new NotFoundException('UserInfo', userId);
+      throw new NotFoundException('UserInfo', id);
     }
 
     await this.redisService.set(cacheKey, user);
@@ -119,7 +145,6 @@ export class UserInfoService {
     }
 
     const exists = await this.userInfoRepository.existsByUniqueFields(
-      dto.userId,
       dto.accountNumber,
       dto.emailAddress,
       dto.registrationNumber,
@@ -129,17 +154,45 @@ export class UserInfoService {
       throw new ConflictException('User with given unique fields already exists');
     }
 
-    return this.userInfoRepository.create(dto);
+    const existingAccount = await this.accountLoginModel.findOne({
+      userName: dto.userName,
+    });
+    if (existingAccount) {
+      throw new ConflictException('Username already exists');
+    }
+
+    const user = await this.userInfoRepository.create({
+      fullName: dto.fullName,
+      accountNumber: dto.accountNumber,
+      emailAddress: dto.emailAddress,
+      registrationNumber: dto.registrationNumber,
+      role: dto.role,
+    });
+
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    await this.accountLoginModel.create({
+      userName: dto.userName,
+      password: hashedPassword,
+      userInfoId: user._id,
+      lastLoginDateTime: new Date(),
+    });
+
+    return user;
   }
 
   async update(
-    userId: string,
+    id: string,
     dto: UpdateUserInfoDto,
     callerRole?: string,
+    callerUserInfoId?: string,
   ): Promise<UserInfoDocument> {
-    const existing = await this.userInfoRepository.findOne({ userId });
+    const existing = await this.userInfoRepository.findOne({ _id: id });
     if (!existing) {
-      throw new NotFoundException('UserInfo', userId);
+      throw new NotFoundException('UserInfo', id);
+    }
+
+    if (callerRole !== 'admin' && callerUserInfoId !== id) {
+      throw new ForbiddenException('You can only edit your own data');
     }
 
     if (callerRole !== 'admin' && dto.role === 'admin') {
@@ -165,7 +218,6 @@ export class UserInfoService {
 
       if (orConditions.length > 0) {
         const conflict = await this.userInfoRepository.existsByUniqueFields(
-          undefined,
           orConditions[0]?.accountNumber,
           orConditions[0]?.emailAddress,
           orConditions[0]?.registrationNumber,
@@ -176,24 +228,24 @@ export class UserInfoService {
       }
     }
 
-    const updated = await this.userInfoRepository.update({ userId }, dto);
-    await this.invalidateCache(userId);
+    const updated = await this.userInfoRepository.update({ _id: id }, dto);
+    await this.invalidateCache(id);
     return updated;
   }
 
-  async delete(userId: string): Promise<UserInfoDocument> {
-    const deleted = await this.userInfoRepository.delete({ userId });
+  async delete(id: string): Promise<UserInfoDocument> {
+    const deleted = await this.userInfoRepository.delete({ _id: id });
     if (!deleted) {
-      throw new NotFoundException('UserInfo', userId);
+      throw new NotFoundException('UserInfo', id);
     }
 
-    await this.invalidateCache(userId);
+    await this.invalidateCache(id);
     return deleted;
   }
 
-  private async invalidateCache(userId: string): Promise<void> {
-    const user = await this.userInfoRepository.findOne({ userId });
-    const keys: string[] = [this.cacheKey(`id:${userId}`)];
+  private async invalidateCache(id: string): Promise<void> {
+    const user = await this.userInfoRepository.findOne({ _id: id });
+    const keys: string[] = [this.cacheKey(`id:${id}`)];
     if (user) {
       keys.push(
         this.cacheKey(`account:${user.accountNumber}`),

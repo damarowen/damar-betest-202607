@@ -14,7 +14,7 @@ export class RedisService implements OnModuleDestroy {
       if (!value) return null;
       return JSON.parse(value) as T;
     } catch (error) {
-      this.logger.error(`Redis GET error: ${error.message}`);
+      this.logger.error(`Redis GET error: ${(error as Error).message}`);
       return null;
     }
   }
@@ -23,7 +23,7 @@ export class RedisService implements OnModuleDestroy {
     try {
       await this.redis.setex(key, ttlSeconds, JSON.stringify(value));
     } catch (error) {
-      this.logger.error(`Redis SET error: ${error.message}`);
+      this.logger.error(`Redis SET error: ${(error as Error).message}`);
     }
   }
 
@@ -31,7 +31,7 @@ export class RedisService implements OnModuleDestroy {
     try {
       await this.redis.del(key);
     } catch (error) {
-      this.logger.error(`Redis DEL error: ${error.message}`);
+      this.logger.error(`Redis DEL error: ${(error as Error).message}`);
     }
   }
 
@@ -42,7 +42,7 @@ export class RedisService implements OnModuleDestroy {
         await this.redis.del(...keys);
       }
     } catch (error) {
-      this.logger.error(`Redis DEL pattern error: ${error.message}`);
+      this.logger.error(`Redis DEL pattern error: ${(error as Error).message}`);
     }
   }
 

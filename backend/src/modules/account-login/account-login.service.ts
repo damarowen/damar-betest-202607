@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { Types } from 'mongoose';
 import { AccountLoginRepository } from './account-login.repository';
 import { CreateAccountLoginDto } from './dto/create-account-login.dto';
 import { UpdateAccountLoginDto } from './dto/update-account-login.dto';
@@ -47,10 +48,10 @@ export class AccountLoginService {
     return { data, total };
   }
 
-  async findById(accountId: string): Promise<AccountLoginDocument> {
-    const account = await this.accountLoginRepository.findOne({ accountId });
+  async findById(id: string): Promise<AccountLoginDocument> {
+    const account = await this.accountLoginRepository.findOne({ _id: id });
     if (!account) {
-      throw new NotFoundException('AccountLogin', accountId);
+      throw new NotFoundException('AccountLogin', id);
     }
     return account;
   }
@@ -64,12 +65,12 @@ export class AccountLoginService {
 
   async create(dto: CreateAccountLoginDto): Promise<AccountLoginDocument> {
     const existing = await this.accountLoginRepository.findOne({
-      $or: [{ accountId: dto.accountId }, { userName: dto.userName }],
+      userName: dto.userName,
     });
 
     if (existing) {
       throw new ConflictException(
-        'Account with given accountId or userName already exists',
+        'Account with given userName already exists',
       );
     }
 
@@ -77,13 +78,14 @@ export class AccountLoginService {
 
     return this.accountLoginRepository.create({
       ...dto,
+      userInfoId: new Types.ObjectId(dto.userInfoId),
       password: hashedPassword,
       lastLoginDateTime: new Date(),
     });
   }
 
   async update(
-    accountId: string,
+    id: string,
     dto: UpdateAccountLoginDto,
   ): Promise<AccountLoginDocument> {
     const updateData: Partial<AccountLoginDocument> = { ...dto };
@@ -96,21 +98,21 @@ export class AccountLoginService {
     }
 
     const updated = await this.accountLoginRepository.update(
-      { accountId },
+      { _id: id },
       updateData,
     );
 
     if (!updated) {
-      throw new NotFoundException('AccountLogin', accountId);
+      throw new NotFoundException('AccountLogin', id);
     }
 
     return updated;
   }
 
-  async delete(accountId: string): Promise<AccountLoginDocument> {
-    const deleted = await this.accountLoginRepository.delete({ accountId });
+  async delete(id: string): Promise<AccountLoginDocument> {
+    const deleted = await this.accountLoginRepository.delete({ _id: id });
     if (!deleted) {
-      throw new NotFoundException('AccountLogin', accountId);
+      throw new NotFoundException('AccountLogin', id);
     }
     return deleted;
   }

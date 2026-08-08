@@ -60,11 +60,11 @@ export class UserInfoController {
     return this.userInfoService.findByRegistrationNumber(registrationNumber);
   }
 
-  @Get(':userId')
+  @Get(':id')
   @Roles('admin', 'user')
-  @ApiOperation({ summary: 'Get User Info detail by userId' })
-  async findById(@Param('userId') userId: string) {
-    return this.userInfoService.findById(userId);
+  @ApiOperation({ summary: 'Get User Info detail by id' })
+  async findById(@Param('id') id: string) {
+    return this.userInfoService.findById(id);
   }
 
   @Post()
@@ -77,22 +77,22 @@ export class UserInfoController {
     return this.userInfoService.create(dto, req.user?.role);
   }
 
-  @Put(':userId')
+  @Put(':id')
   @Roles('admin', 'user')
-  @ApiOperation({ summary: 'Update User Info by userId' })
+  @ApiOperation({ summary: 'Update User Info by id' })
   async update(
-    @Param('userId') userId: string,
+    @Param('id') id: string,
     @Body() dto: UpdateUserInfoDto,
     @Req() req: any,
   ) {
-    return this.userInfoService.update(userId, dto, req.user?.role);
+    return this.userInfoService.update(id, dto, req.user?.role, req.user?.userInfoId);
   }
 
-  @Delete(':userId')
+  @Delete(':id')
   @Roles('admin')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete User Info by userId' })
-  async delete(@Param('userId') userId: string) {
-    return this.userInfoService.delete(userId);
+  @ApiOperation({ summary: 'Delete User Info by id' })
+  async delete(@Param('id') id: string) {
+    return this.userInfoService.delete(id);
   }
 }

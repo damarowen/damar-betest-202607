@@ -24,8 +24,10 @@ function App() {
             <Route index element={<Navigate to="/users" />} />
             <Route path="users" element={<UserListPage />} />
             <Route path="users/add" element={<UserFormPage />} />
-            <Route path="users/:userId" element={<UserDetailPage />} />
-            <Route path="users/edit/:userId" element={<UserFormPage />} />
+            <Route path="users/by-account/:accountNumber" element={<UserDetailPage />} />
+            <Route path="users/by-registration/:registrationNumber" element={<UserDetailPage />} />
+            <Route path="users/:id" element={<UserDetailPage />} />
+            <Route path="users/edit/:id" element={<UserFormPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

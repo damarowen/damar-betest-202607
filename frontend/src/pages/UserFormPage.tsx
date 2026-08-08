@@ -13,10 +13,10 @@ import {
 import { UserInfoFormData } from '../types/user-info';
 
 export default function UserFormPage() {
-  const { userId } = useParams<{ userId: string }>();
+  const { id } = useParams<{ id: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const isEdit = Boolean(userId);
+  const isEdit = Boolean(id);
 
   const { selectedUser, loading, creating, updating, error } = useSelector(
     (state: RootState) => state.userInfo,
@@ -33,30 +33,30 @@ export default function UserFormPage() {
     formState: { errors },
   } = useForm<UserInfoFormData>({
     defaultValues: {
-      userId: '',
       fullName: '',
       accountNumber: '',
       emailAddress: '',
       registrationNumber: '',
       role: 'user',
+      userName: '',
+      password: '',
     },
   });
 
   useEffect(() => {
-    if (userId) {
-      dispatch(fetchUserStart(userId));
+    if (id) {
+      dispatch(fetchUserStart(id));
     }
     return () => {
       dispatch(clearSelectedUser());
       dispatch(clearError());
       setFinished(false);
     };
-  }, [dispatch, userId]);
+  }, [dispatch, id]);
 
   useEffect(() => {
     if (isEdit && selectedUser) {
       reset({
-        userId: selectedUser.userId,
         fullName: selectedUser.fullName,
         accountNumber: selectedUser.accountNumber,
         emailAddress: selectedUser.emailAddress,
@@ -73,8 +73,8 @@ export default function UserFormPage() {
   }, [finished, creating, updating, error, navigate]);
 
   const onSubmit = (data: UserInfoFormData) => {
-    if (isEdit && userId) {
-      dispatch(updateUserStart({ userId, data }));
+    if (isEdit && id) {
+      dispatch(updateUserStart({ id, data }));
     } else {
       dispatch(createUserStart(data));
     }
@@ -109,12 +109,6 @@ export default function UserFormPage() {
         onSubmit={handleSubmit(onSubmit)}
         className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-2xl space-y-5"
       >
-        <FormInput
-          label="User ID"
-          {...register('userId', { required: 'User ID is required' })}
-          disabled={isEdit || isBusy}
-          error={errors.userId?.message}
-        />
         <FormInput
           label="Full Name"
           {...register('fullName', { required: 'Full name is required' })}
@@ -160,13 +154,48 @@ export default function UserFormPage() {
           >
             <option value="user">User</option>
             {isAdmin && <option value="admin">Admin</option>}
+            {!isAdmin && selectedUser?.role === 'admin' && (
+              <option value="admin" disabled>Admin (read-only)</option>
+            )}
           </select>
-          {!isAdmin && (
+          {!isAdmin && isEdit && selectedUser?.role === 'admin' && (
+            <p className="mt-1 text-xs text-amber-600">
+              You cannot modify an admin user's role.
+            </p>
+          )}
+          {!isAdmin && !isEdit && (
             <p className="mt-1 text-xs text-slate-500">
               You can only create users with role "user".
             </p>
           )}
         </div>
+
+        {!isEdit && (
+          <div className="border-t border-slate-200 pt-5">
+            <h3 className="text-sm font-semibold text-slate-700 mb-4">Login Credentials</h3>
+            <div className="space-y-5">
+              <FormInput
+                label="Username"
+                {...register('userName', {
+                  required: 'Username is required',
+                  minLength: { value: 3, message: 'Min 3 characters' },
+                })}
+                disabled={isBusy}
+                error={errors.userName?.message}
+              />
+              <FormInput
+                label="Password"
+                type="password"
+                {...register('password', {
+                  required: 'Password is required',
+                  minLength: { value: 6, message: 'Min 6 characters' },
+                })}
+                disabled={isBusy}
+                error={errors.password?.message}
+              />
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="text-red-600 text-sm bg-red-50 px-4 py-3 rounded-lg">

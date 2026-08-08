@@ -2,10 +2,19 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AppDispatch, RootState } from '../redux/store';
-import { fetchUserStart, clearSelectedUser } from '../redux/slices/userInfo.slice';
+import {
+  fetchUserStart,
+  fetchUserByAccountNumberStart,
+  fetchUserByRegistrationNumberStart,
+  clearSelectedUser,
+} from '../redux/slices/userInfo.slice';
 
 export default function UserDetailPage() {
-  const { userId } = useParams<{ userId: string }>();
+  const { id, accountNumber, registrationNumber } = useParams<{
+    id?: string;
+    accountNumber?: string;
+    registrationNumber?: string;
+  }>();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { selectedUser, loading, error } = useSelector(
@@ -13,13 +22,17 @@ export default function UserDetailPage() {
   );
 
   useEffect(() => {
-    if (userId) {
-      dispatch(fetchUserStart(userId));
+    if (id) {
+      dispatch(fetchUserStart(id));
+    } else if (accountNumber) {
+      dispatch(fetchUserByAccountNumberStart(decodeURIComponent(accountNumber)));
+    } else if (registrationNumber) {
+      dispatch(fetchUserByRegistrationNumberStart(decodeURIComponent(registrationNumber)));
     }
     return () => {
       dispatch(clearSelectedUser());
     };
-  }, [dispatch, userId]);
+  }, [dispatch, id, accountNumber, registrationNumber]);
 
   if (loading) return <div className="text-slate-500">Loading...</div>;
   if (error) return <div className="text-red-600">{error}</div>;
@@ -31,7 +44,7 @@ export default function UserDetailPage() {
         <h1 className="text-2xl font-bold text-slate-900">User Detail</h1>
         <div className="space-x-3">
           <Link
-            to={`/users/edit/${selectedUser.userId}`}
+            to={`/users/edit/${selectedUser._id}`}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
           >
             Edit
