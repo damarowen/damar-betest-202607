@@ -24,6 +24,8 @@ services:
     restart: unless-stopped
     expose:
       - "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
     environment:
       - PORT=3000
       - NODE_ENV=production
@@ -44,6 +46,8 @@ services:
     restart: unless-stopped
     expose:
       - "80"
+    ports:
+      - "127.0.0.1:8888:80"
     depends_on:
       - backend
     networks:
