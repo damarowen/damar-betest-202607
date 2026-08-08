@@ -17,7 +17,6 @@
 | Index | Type | Constraint | Purpose |
 |-------|------|------------|---------|
 | `_id` | ascending | unique (auto) | Primary key (MongoDB ObjectId) |
-| `accountId` | ascending | unique | Primary lookup |
 | `userName` | ascending | unique | Login lookup |
 | `userInfoId` | ascending | - | Relationship lookup (ObjectId ref to userinfos) |
 | `lastLoginDateTime` | descending | - | Find inactive accounts |
@@ -40,16 +39,7 @@ db.userinfos.createIndex({ registrationNumber: 1 }, { unique: true });
 db.userinfos.createIndex({ fullName: 'text' });
 
 // accountlogins - _id is auto-indexed by MongoDB
-db.accountlogins.createIndex({ accountId: 1 }, { unique: true });
 db.accountlogins.createIndex({ userName: 1 }, { unique: true });
 db.accountlogins.createIndex({ userInfoId: 1 });
 db.accountlogins.createIndex({ lastLoginDateTime: -1 });
 ```
-
-## Migration Notes
-
-When migrating from the old schema that used `userId` field:
-1. Drop old indexes: `db.userinfos.dropIndex('userId_1')` and `db.accountlogins.dropIndex('userId_1')`
-2. Remove `userId` field from existing documents: `db.userinfos.updateMany({}, { $unset: { userId: "" } })`
-3. Update `accountlogins.userId` to `userInfoId`: `db.accountlogins.updateMany({}, { $rename: { userId: "userInfoId" } })`
-4. Create new index: `db.accountlogins.createIndex({ userInfoId: 1 })`
